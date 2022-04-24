@@ -127,7 +127,6 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = district)) +
 
 ### A. Cap without trade 
 
-**Table 1** displays the results of putting a market cap of 500 acre feet of water without allowing trading. 
 ```{r}
 reduction_target <- 500
 
@@ -146,10 +145,10 @@ cap_no_trade <- template_df %>%
   mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
   mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
   mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, total_cost, stringency)
+  select(district, abatement, water_use_new, total_cost, stringency) 
 
 kable(cap_no_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
 total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
@@ -172,10 +171,11 @@ tax_df <- template_df %>%
   mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
   mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, total_cost, stringency)
+  mutate(water_use = use - abatement) %>% 
+  select(district, abatement, water_use, total_cost, stringency)
 
 kable(tax_df, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>%
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
   
 total_cost_b <- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
@@ -201,10 +201,11 @@ cap_and_trade <- template_df %>%
   mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
   mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # addding the revenue generated from buying and selling water rights
   mutate(stringency = abatement_after_trade/use) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement_after_trade, total_cost, stringency)
+  mutate(use_after_trade = use - abatement_after_trade) %>% 
+  select(district, abatement_after_trade, use_after_trade, total_cost, stringency)
 
 kable(cap_and_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
 total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts
@@ -243,10 +244,10 @@ cap_no_trade <- template_df %>%
   mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
   mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
   mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, total_cost, stringency)
+  select(district, abatement, water_use_new, total_cost, stringency) 
 
 kable(cap_no_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
 total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
@@ -269,10 +270,11 @@ tax_df <- template_df %>%
   mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
   mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, total_cost, stringency)
+  mutate(water_use = use - abatement) %>% 
+  select(district, abatement, water_use, total_cost, stringency)
 
 kable(tax_df, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>%
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
   
 total_cost_b <- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
@@ -298,10 +300,11 @@ cap_and_trade <- template_df %>%
   mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
   mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # addding the revenue generated from buying and selling water rights
   mutate(stringency = abatement_after_trade/use) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement_after_trade, total_cost, stringency)
+  mutate(use_after_trade = use - abatement_after_trade) %>% 
+  select(district, abatement_after_trade, use_after_trade, total_cost, stringency)
 
 kable(cap_and_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
 total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts
