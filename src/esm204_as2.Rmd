@@ -118,6 +118,8 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
 
 ## 3. Policy interventions
 
+#### Water use goal = 500 AF
+
 ***
 
 ### A. Cap without trade 
@@ -213,6 +215,8 @@ There are no taxes collected under this policy intervention so **tax revenue is 
 ***
 
 ## 4. Drought
+
+#### Water use goal = 300 AF
 
 ***
 
