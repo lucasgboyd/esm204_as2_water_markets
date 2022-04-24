@@ -14,6 +14,7 @@ library(here)
 library(janitor)
 library(broom)
 library(equatiomatic)
+library(kableExtra)
 ```
 # Intro {.tabset .tabset-pills}
  Current (i.e. baseline) water use in these districts1
@@ -110,8 +111,10 @@ ggplot(data = water_inverse_longer,
 ## Here you will analyze three alternative policies for reducing water use among these irrigation districts.
 In total, these irrigation districts will need to reduce water consumption from the current 755 AF down
 to 500 AF. For each intervention listed below, perform the following calculations: (1) calculate the
-stringency of the policy (defined below for each intervention) required to achieve the 500 AF target, (2)
-calculate the total cost of meeting the target using that approach, (3) calculate the cost to each district,
+stringency of the policy (defined below for each intervention) required to achieve the 500 AF target, 
+(2)
+calculate the total cost of meeting the target using that approach, 
+(3) calculate the cost to each district,
 and (4) calculate the tax revenue generated.
 #### a. Cap without trade. Reduce each district’s water use by the same fraction (e.g., 1/3 of current
 baseline use), so the 500 AF target is met. Trade is not allowed. Stringency is defined as the
@@ -124,14 +127,21 @@ use_antelope <- 220
 use_ventura <- 245
 use_aggregate <- 755
 
-stringency_a <- 1-(500/aggregate_use)
+stringency_a <- 1-(500/use_aggregate)
 
 use <- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
 district <- c("Kern", "Mojave", "Antelope", "Ventura", "Aggregate")
+mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_aggregate)
 
-cap_no_trade <- data.frame(district, use) %>% 
-  mutate(cap_without_trade = use*(500/aggregate_use)) %>% # calculating the new levels of water after cap/no trade
-  
+cap_no_trade <- data.frame(district, use, mca_slope) %>%
+  filter(district != "Aggregate") %>% 
+  mutate(water_use_new = (use*(500/use_aggregate))) %>%
+  mutate(abatement = use - water_use_new) %>% 
+  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve
+  mutate(stringency = stringency_a)
+
+kable(cap_no_trade, digits = 3) %>% 
+  kable_minimal(full_width = FALSE)
 ```
 
 #### b. Tax on water use. A single tax is implemented on all water use in each of the four districts, such
