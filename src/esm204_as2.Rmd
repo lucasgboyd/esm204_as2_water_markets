@@ -17,10 +17,6 @@ library(equatiomatic)
 library(kableExtra)
 ```
 # Intro {.tabset .tabset-pills}
- Current (i.e. baseline) water use in these districts1
-is: Kern = 150 AF, Mojave = 140 AF, Antelope = 220
-AF, and Ventura = 245 AF.
-● Prices are in $/Acre Foot and quantities are in Acre Feet (AF).
 
 ## 1. Marginal Abatement
 ```{r}
@@ -47,7 +43,7 @@ ggplot(data = water_longer,
   theme_minimal(14) +
   labs (y = "Marginal cost of abatement ($/acre foot)", 
         x = "Level of reduction (acre feet)") +
-  scale_color_manual(values = c("cyan4", "goldenrod4", "firebrick", "forestgreen")) +
+  scale_color_manual(values = c("cyan4", "goldenrod4", "firebrick", "forestgreen", "black")) +
   theme(legend.position = c(0.2, 0.7))
 ```
 
@@ -75,29 +71,37 @@ slope_kern <- lm_kern$coefficients[1]
 slope_ventura <- lm_ventura$coefficients[1]
 slope_antelope <- lm_antelope$coefficients[1]
 slope_mojave <- lm_mojave$coefficients[1]
-slope_aggregate <- lm_aggregate$coefficients[1]
+slope_aggregate <- 1/slope_kern + 1/slope_ventura + 1/slope_antelope + 1/slope_mojave
 ```
 
 ## 2. Demand Curves
+
 ```{r}
-reduction_inverse <- c(140:0)
+demand_vector <- c(0:250)
 
-water_inverse <- data.frame(reduction_inverse, water) 
+use_kern <- 150
+use_mojave <- 140
+use_antelope <- 220
+use_ventura <- 245
+use_aggregate <- 755
 
-water_inverse_longer <- water_inverse %>% 
-  pivot_longer(cols = c(4:7), names_to = "county", values_to = "mc") %>% 
+demand_df <- data.frame(demand_vector) %>% 
+  mutate(mb_kern = slope_kern*(use_kern - demand_vector)) %>% 
+  mutate(mb_ventura = slope_ventura*(use_ventura - demand_vector)) %>%  
+  mutate(mb_mojave = slope_mojave*(use_mojave - demand_vector)) %>% 
+  mutate(mb_antelope = slope_antelope*(use_antelope - demand_vector)) %>%
+  pivot_longer(cols = c(2:5), names_to = "county", values_to = "mb") %>% 
   mutate(county = case_when(
-    county == "mc_kern" ~ "Kern", 
-    county == "mc_antelope" ~ "Antelope", 
-    county == "mc_ventura" ~ "Ventura", 
-    county == "mc_mojave" ~ "Mojave"
+    county == "mb_kern" ~ "Kern", 
+    county == "mb_antelope" ~ "Antelope", 
+    county == "mb_ventura" ~ "Ventura", 
+    county == "mb_mojave" ~ "Mojave"
   ))
 
-ggplot(data = water_inverse_longer, 
-       aes(x = reduction_inverse, y = mc, color = county)) +
-  geom_line(size = 0.3) + 
-  geom_smooth(method = "lm") +
+ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
+  geom_line(size = 1) +
   theme_minimal(14) +
+  scale_y_continuous(limits = c(0, 750)) +
   labs (y = "Marginal benefit of water use ($/acre foot)", 
         x = "Water use (consumption) (acre feet)") +
   scale_color_manual(values = c("cyan4", "goldenrod4", "firebrick", "forestgreen")) +
@@ -106,9 +110,9 @@ ggplot(data = water_inverse_longer,
 
 **Figure 2** shows marginal willingness to pay for water for each district. 
 
-**The Mojave Water district** is willing to pay the most for the first acre foot of water, at a price of **$540**. 
+**The Mojave Water district** is willing to pay the most for the first acre foot of water, at a price of **$628.68**. 
 
-## Here you will analyze three alternative policies for reducing water use among these irrigation districts.
+## 3. Policy interventions
 In total, these irrigation districts will need to reduce water consumption from the current 755 AF down
 to 500 AF. For each intervention listed below, perform the following calculations: (1) calculate the
 stringency of the policy (defined below for each intervention) required to achieve the 500 AF target, 
@@ -121,12 +125,6 @@ baseline use), so the 500 AF target is met. Trade is not allowed. Stringency is 
 magnitude of the fraction.
 
 ```{r}
-use_kern <- 150
-use_mojave <- 140
-use_antelope <- 220
-use_ventura <- 245
-use_aggregate <- 755
-
 stringency_a <- 1-(500/use_aggregate)
 
 use <- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
@@ -142,16 +140,25 @@ cap_no_trade <- data.frame(district, use, mca_slope) %>%
 
 kable(cap_no_trade, digits = 3) %>% 
   kable_minimal(full_width = FALSE)
+
+## total_cost <- ### calculate total costs to each district
+## tax revenue 
 ```
 
 #### b. Tax on water use. A single tax is implemented on all water use in each of the four districts, such
 that water use is reduced to the 500 AF target. Stringency is defined as the magnitude of the
 tax.
+
+```{r}
+
+```
+
 #### c. Cap and trade. Cap water use as in part (a), but after those caps are set, allow trade across
 districts. How much water is used by each district after trade? Stringency is the same as in part
 (a).
 
-## A severe drought hits California, and it is necessary to reduce water use from 500 AF down to 300 AF. Your
+## 4. Drought
+A severe drought hits California, and it is necessary to reduce water use from 500 AF down to 300 AF. Your
 job is to estimate the cost of the drought (i.e., the cost of reducing water use from 500 AF to 300 AF) to
 each irrigation district under each policy. Considering the entire jump from status quo (755 AF) to the
 drought (300 AF), which policy is preferred by each irrigation district? How does your answer depend on
