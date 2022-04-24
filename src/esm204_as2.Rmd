@@ -1,14 +1,15 @@
 ---
-title: "hw2"
-author: "Lucas Boyd"
+title: "ESM 204 Assignment 2: Water Markets"
+author: "Evie Vermeer & Lucas Boyd"
 date: "4/12/2022"
 output: 
   html_document:
+    code_folding: hide
     theme: spacelab
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(here)
 library(janitor)
@@ -19,35 +20,37 @@ library(kableExtra)
 # Intro {.tabset .tabset-pills}
 
 ## 1. Marginal Abatement
+
+***
+
 ```{r}
 water <- read_csv(here("data", "Water_Districts.csv")) %>% 
   clean_names() %>% 
   mutate(mc_aggregate = mc_kern + mc_antelope + mc_ventura + mc_mojave)
 
 water_longer <- water %>% 
-  pivot_longer(cols = c(3:6), names_to = "county", values_to = "mc") %>% 
+  pivot_longer(cols = c(3:6), names_to = "district", values_to = "mc") %>% 
   mutate(county = case_when(
-    county == "mc_kern" ~ "Kern", 
-    county == "mc_antelope" ~ "Antelope", 
-    county == "mc_ventura" ~ "Ventura", 
-    county == "mc_mojave" ~ "Mojave",
-    county == "mc_aggregate" ~ "Aggregate"
+    district == "mc_kern" ~ "Kern", 
+    district == "mc_antelope" ~ "Antelope", 
+    district == "mc_ventura" ~ "Ventura", 
+    district == "mc_mojave" ~ "Mojave",
+    district == "mc_aggregate" ~ "Aggregate"
   ))
-```
 
-```{r}
 ggplot(data = water_longer, 
-       aes(x = reduction, y = mc, color = county)) +
+       aes(x = reduction, y = mc, color = district)) +
   geom_line(size = 0.3) + 
-  geom_smooth(method = "lm") +
+  geom_smooth(se = FALSE, method = "lm") +
   theme_minimal(14) +
   labs (y = "Marginal cost of abatement ($/acre foot)", 
         x = "Level of reduction (acre feet)") +
   scale_color_manual(values = c("cyan4", "goldenrod4", "firebrick", "forestgreen", "black")) +
-  theme(legend.position = c(0.2, 0.7))
+  theme(legend.position = c(0.2, 0.7)) +
+  scale_y_continuous(limits = c(0, 500))
 ```
 
-**Figure 1** shows marginal cost of abatement of water use for each district.
+**Figure 1** shows marginal cost of abatement of water use for each district, thick, straight lines represent a model fit to the data using simple linear regression.
 ```{r}
 lm_kern <- lm(mc_kern ~ 0 + reduction, data = water)
 lm_ventura <- lm(mc_ventura ~ 0 + reduction, data = water)
@@ -63,7 +66,6 @@ extract_eq(lm_kern, use_coefs = TRUE)
 extract_eq(lm_ventura, use_coefs = TRUE)
 extract_eq(lm_antelope, use_coefs = TRUE)
 extract_eq(lm_mojave, use_coefs = TRUE)
-extract_eq(lm_aggregate, use_coefs = TRUE)
 ```
 
 ```{r}
@@ -75,6 +77,8 @@ slope_aggregate <- 1/slope_kern + 1/slope_ventura + 1/slope_antelope + 1/slope_m
 ```
 
 ## 2. Demand Curves
+
+***
 
 ```{r}
 demand_vector <- c(0:250)
@@ -90,12 +94,12 @@ demand_df <- data.frame(demand_vector) %>%
   mutate(mb_ventura = slope_ventura*(use_ventura - demand_vector)) %>%  
   mutate(mb_mojave = slope_mojave*(use_mojave - demand_vector)) %>% 
   mutate(mb_antelope = slope_antelope*(use_antelope - demand_vector)) %>%
-  pivot_longer(cols = c(2:5), names_to = "county", values_to = "mb") %>% 
+  pivot_longer(cols = c(2:5), names_to = "district", values_to = "mb") %>% 
   mutate(county = case_when(
-    county == "mb_kern" ~ "Kern", 
-    county == "mb_antelope" ~ "Antelope", 
-    county == "mb_ventura" ~ "Ventura", 
-    county == "mb_mojave" ~ "Mojave"
+    district == "mb_kern" ~ "Kern", 
+    district == "mb_antelope" ~ "Antelope", 
+    district == "mb_ventura" ~ "Ventura", 
+    district == "mb_mojave" ~ "Mojave"
   ))
 
 ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
@@ -110,60 +114,199 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
 
 **Figure 2** shows marginal willingness to pay for water for each district. 
 
-**The Mojave Water district** is willing to pay the most for the first acre foot of water, at a price of **$628.68**. 
+**The Antelope district** is willing to pay the most for the first acre foot of water, at a price of **$628.68**. 
 
 ## 3. Policy interventions
-In total, these irrigation districts will need to reduce water consumption from the current 755 AF down
-to 500 AF. For each intervention listed below, perform the following calculations: (1) calculate the
-stringency of the policy (defined below for each intervention) required to achieve the 500 AF target, 
-(2)
-calculate the total cost of meeting the target using that approach, 
-(3) calculate the cost to each district,
-and (4) calculate the tax revenue generated.
-#### a. Cap without trade. Reduce each district’s water use by the same fraction (e.g., 1/3 of current
-baseline use), so the 500 AF target is met. Trade is not allowed. Stringency is defined as the
-magnitude of the fraction.
 
+***
+
+### A. Cap without trade 
+
+**Table 1** displays the results of putting a market cap of 500 acre feet of water without allowing trading. 
 ```{r}
-stringency_a <- 1-(500/use_aggregate)
+reduction_target <- 500
+
+stringency_a <- 1-(reduction_target/use_aggregate) # calculating the fractional reduction for all districts
 
 use <- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
 district <- c("Kern", "Mojave", "Antelope", "Ventura", "Aggregate")
 mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_aggregate)
 
-cap_no_trade <- data.frame(district, use, mca_slope) %>%
+template_df <- data.frame(district, use, mca_slope) %>% 
+  filter(district != "Aggregate")
+
+cap_no_trade <- template_df %>% 
   filter(district != "Aggregate") %>% 
-  mutate(water_use_new = (use*(500/use_aggregate))) %>%
-  mutate(abatement = use - water_use_new) %>% 
-  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve
-  mutate(stringency = stringency_a)
+  mutate(water_use_new = (use*(reduction_target/use_aggregate))) %>% # calculating water use after the mandated reduction
+  mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
+  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
+  mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement, total_cost, stringency)
 
-kable(cap_no_trade, digits = 3) %>% 
-  kable_minimal(full_width = FALSE)
+kable(cap_no_trade, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
-## total_cost <- ### calculate total costs to each district
-## tax revenue 
+total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
 ```
 
-#### b. Tax on water use. A single tax is implemented on all water use in each of the four districts, such
-that water use is reduced to the 500 AF target. Stringency is defined as the magnitude of the
-tax.
+**Total cost of this policy:** $`r paste(total_cost_a)`
+
+There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+
+***
+
+### B. Tax on water use
 
 ```{r}
 
+# calculate the necessary tax by solving for 
+tax <- (755-reduction_target)/slope_aggregate
+
+tax_df <- template_df %>% 
+  mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement, total_cost, stringency)
+
+kable(tax_df, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+  
+total_cost_b <- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
+tax_rev_b <- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax
+
 ```
 
-#### c. Cap and trade. Cap water use as in part (a), but after those caps are set, allow trade across
-districts. How much water is used by each district after trade? Stringency is the same as in part
-(a).
+**Total cost of this policy:** $`r paste(total_cost_b)`
+
+**Tax Revenue:** $`r paste(tax_rev_b)`
+
+*** 
+
+### C. Cap and trade
+
+```{r}
+cap_and_trade <- template_df %>% 
+  mutate(water_use_no_trade = (use*(reduction_target/use_aggregate))) %>% # pulling code from (A) to calculate the water use before trading
+  mutate(abatement_before_trade = use - water_use_no_trade) %>% # calculating the abatement before trading
+  mutate(abatement_after_trade = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(buy_sell = abatement_before_trade - abatement_after_trade) %>% 
+  mutate(total_cost_before_trade = (abatement_before_trade*abatement_before_trade*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
+  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # addding the revenue generated from buying and selling water rights
+  mutate(stringency = abatement_after_trade/use) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement_after_trade, total_cost, stringency)
+
+kable(cap_and_trade, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+
+total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts
+
+```
+
+**Total cost of this policy:** $`r paste(total_cost_c)`
+
+There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+
+***
 
 ## 4. Drought
-A severe drought hits California, and it is necessary to reduce water use from 500 AF down to 300 AF. Your
-job is to estimate the cost of the drought (i.e., the cost of reducing water use from 500 AF to 300 AF) to
-each irrigation district under each policy. Considering the entire jump from status quo (755 AF) to the
-drought (300 AF), which policy is preferred by each irrigation district? How does your answer depend on
-how rights are allocated to each district (in policies (a) and (c))2? 
 
+***
+
+### A. Cap without trade 
+
+**Table 1** displays the results of putting a market cap of 500 acre feet of water without allowing trading. 
+```{r}
+reduction_target <- 300 # change this number to run for drought
+
+stringency_a <- 1-(reduction_target/use_aggregate) # calculating the fractional reduction for all districts
+
+use <- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
+district <- c("Kern", "Mojave", "Antelope", "Ventura", "Aggregate")
+mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_aggregate)
+
+template_df <- data.frame(district, use, mca_slope) %>% 
+  filter(district != "Aggregate")
+
+cap_no_trade <- template_df %>% 
+  filter(district != "Aggregate") %>% 
+  mutate(water_use_new = (use*(reduction_target/use_aggregate))) %>% # calculating water use after the mandated reduction
+  mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
+  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
+  mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement, total_cost, stringency)
+
+kable(cap_no_trade, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+
+total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
+```
+
+**Total cost of this policy:** $`r paste(total_cost_a)`
+
+There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+
+***
+
+### B. Tax on water use
+
+```{r}
+
+# calculate the necessary tax by solving for 
+tax <- (755-reduction_target)/slope_aggregate
+
+tax_df <- template_df %>% 
+  mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement, total_cost, stringency)
+
+kable(tax_df, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+  
+total_cost_b <- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
+tax_rev_b <- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax
+
+```
+
+**Total cost of this policy:** $`r paste(total_cost_b)`
+
+**Tax Revenue:** $`r paste(tax_rev_b)`
+
+*** 
+
+### C. Cap and trade
+
+```{r}
+cap_and_trade <- template_df %>% 
+  mutate(water_use_no_trade = (use*(reduction_target/use_aggregate))) %>% # pulling code from (A) to calculate the water use before trading
+  mutate(abatement_before_trade = use - water_use_no_trade) %>% # calculating the abatement before trading
+  mutate(abatement_after_trade = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(buy_sell = abatement_before_trade - abatement_after_trade) %>% 
+  mutate(total_cost_before_trade = (abatement_before_trade*abatement_before_trade*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
+  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # addding the revenue generated from buying and selling water rights
+  mutate(stringency = abatement_after_trade/use) %>% # calculating stringency by dividing abatement by initial use 
+  select(district, abatement_after_trade, total_cost, stringency)
+
+kable(cap_and_trade, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Cost to District (USD)", "Stringency")) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+
+total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts
+
+```
+
+**Total cost of this policy:** $`r paste(total_cost_c)`
+
+There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+
+***
 
 
 
