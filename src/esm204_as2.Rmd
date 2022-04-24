@@ -18,7 +18,7 @@ library(equatiomatic)
 library(kableExtra)
 ```
 # California Water Districts {.tabset .tabset-pills}
-![Irrigation running through California's Central Valley.](irrigation.jpeg)
+![](irrigation.jpeg)
 
 ## 1. Marginal Abatement
 
@@ -103,7 +103,7 @@ demand_df <- data.frame(demand_vector) %>%
     district == "mb_mojave" ~ "Mojave"
   ))
 
-ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
+ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = district)) +
   geom_line(size = 1) +
   theme_minimal(14) +
   scale_y_continuous(limits = c(0, 750)) +
@@ -116,6 +116,8 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = county)) +
 **Figure 2** shows marginal willingness to pay for water for each district. 
 
 **The Antelope district** is willing to pay the most for the first acre foot of water, at a price of **$628.68**. 
+
+***
 
 ## 3. Policy interventions
 
@@ -223,7 +225,6 @@ There are no taxes collected under this policy intervention so **tax revenue is 
 
 ### A. Cap without trade 
 
-**Table 1** displays the results of putting a market cap of 500 acre feet of water without allowing trading. 
 ```{r}
 reduction_target <- 300 # change this number to run for drought
 
