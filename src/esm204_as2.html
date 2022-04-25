@@ -427,11 +427,14 @@ Ventura
 <pre class="r"><code># calculate the necessary tax by solving for 
 tax &lt;- (755-reduction_target)/slope_aggregate
 
-tax_df &lt;- template_df %&gt;% 
+tax_df_full &lt;- template_df %&gt;% 
   mutate(abatement = tax/mca_slope) %&gt;% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (abatement*abatement*mca_slope)/2) %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_abatement = (abatement*abatement*mca_slope)/2) %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %&gt;% # calculating stringency by dividing abatement by initial use 
-  mutate(water_use = use - abatement) %&gt;% 
+  mutate(water_use = use - abatement) %&gt;%
+  mutate(total_cost = (water_use*tax) + total_cost_abatement)
+
+tax_df &lt;- tax_df_full %&gt;% 
   select(district, abatement, water_use, total_cost, stringency)
 
 kable(tax_df, digits = 2, col.names = 
@@ -469,7 +472,7 @@ Kern
 80.87
 </td>
 <td style="text-align:right;">
-5463.92
+18246.11
 </td>
 <td style="text-align:right;">
 0.46
@@ -486,7 +489,7 @@ Mojave
 98.45
 </td>
 <td style="text-align:right;">
-3284.04
+18845.33
 </td>
 <td style="text-align:right;">
 0.30
@@ -503,7 +506,7 @@ Antelope
 164.69
 </td>
 <td style="text-align:right;">
-4371.64
+30403.08
 </td>
 <td style="text-align:right;">
 0.25
@@ -520,7 +523,7 @@ Ventura
 156.00
 </td>
 <td style="text-align:right;">
-7033.93
+31692.46
 </td>
 <td style="text-align:right;">
 0.36
@@ -530,7 +533,7 @@ Ventura
 </table>
 <pre class="r"><code>total_cost_b &lt;- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
 tax_rev_b &lt;- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax</code></pre>
-<p><strong>Total cost of this policy:</strong> $20154</p>
+<p><strong>Total cost of this policy:</strong> $99187</p>
 <p><strong>Tax Revenue:</strong> $79033</p>
 <hr />
 </div>
@@ -768,12 +771,13 @@ Ventura
 tax &lt;- (755-reduction_target)/slope_aggregate
 
 tax_df_drought &lt;- template_df %&gt;% 
-  mutate(former_cost = tax_df$total_cost) %&gt;% 
+  mutate(former_cost = tax_df_full$total_cost_abatement) %&gt;% 
   mutate(abatement = tax/mca_slope) %&gt;% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_abatement = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %&gt;% # calculating stringency by dividing abatement by initial use 
   mutate(water_use = use - (abatement - tax_df$abatement)) %&gt;%
   mutate(abatement = use - water_use) %&gt;% 
+  mutate(total_cost = (water_use*tax) + total_cost_abatement) %&gt;% 
   select(district, abatement, water_use, total_cost)
 
 kable(tax_df_drought, digits = 2, col.names = 
@@ -808,7 +812,7 @@ Kern
 45.11
 </td>
 <td style="text-align:right;">
-11931.98
+24656.19
 </td>
 </tr>
 <tr>
@@ -822,7 +826,7 @@ Mojave
 60.13
 </td>
 <td style="text-align:right;">
-7171.60
+24129.32
 </td>
 </tr>
 <tr>
@@ -836,7 +840,7 @@ Antelope
 102.31
 </td>
 <td style="text-align:right;">
-9546.68
+38402.85
 </td>
 </tr>
 <tr>
@@ -850,14 +854,14 @@ Ventura
 92.45
 </td>
 <td style="text-align:right;">
-15360.53
+41434.70
 </td>
 </tr>
 </tbody>
 </table>
 <pre class="r"><code>total_cost_b &lt;- round(sum(tax_df_drought$total_cost[1:4]), 0) # calculating the total cost to all districts
 tax_rev_b &lt;- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax</code></pre>
-<p><strong>Total cost of this policy:</strong> $44011</p>
+<p><strong>Total cost of this policy:</strong> $128623</p>
 <p><strong>Tax Revenue:</strong> $84612</p>
 <hr />
 </div>
@@ -962,14 +966,14 @@ Ventura
 <div id="policy-preferences-by-district" class="section level3">
 <h3>Policy preferences by district</h3>
 <pre class="r"><code>kern_policy &lt;- round(cap_no_trade_3$total_cost[1] + cap_no_trade$total_cost[1], 0)
-mojave_policy &lt;- round(tax_df$total_cost[2] + tax_df_drought$total_cost[2], 0)
-antelope_policy &lt;- round(tax_df$total_cost[3] + tax_df_drought$total_cost[3], 0)
+mojave_policy &lt;- round(cap_and_trade$total_cost[2] + cap_and_trade_drought$total_cost[2], 0)
+antelope_policy &lt;- round(cap_and_trade$total_cost[3] + cap_and_trade_drought$total_cost[3], 0)
 ventura_policy &lt;- round(cap_no_trade_3$total_cost[4] + cap_no_trade$total_cost[4], 0)</code></pre>
 <p>The policies that minimize total cost to each district are as follows:</p>
 <ul>
 <li><p><strong>Kern</strong> prefers <strong>cap without trade</strong> ($9342)</p></li>
-<li><p><strong>Mojave</strong> prefers a <strong>single tax</strong> ($10456)</p></li>
-<li><p><strong>Antelope</strong> prefers a <strong>single tax</strong> ($13918)</p></li>
+<li><p><strong>Mojave</strong> prefers a <strong>cap and trade</strong> ($11594)</p></li>
+<li><p><strong>Antelope</strong> prefers a <strong>cap and trade</strong> ($20422)</p></li>
 <li><p><strong>Ventura</strong> prefers <strong>cap without trade</strong> ($19359)</p></li>
 </ul>
 <hr />

@@ -172,11 +172,14 @@ There are no taxes collected under this policy intervention so **tax revenue is 
 # calculate the necessary tax by solving for 
 tax <- (755-reduction_target)/slope_aggregate
 
-tax_df <- template_df %>% 
+tax_df_full <- template_df %>% 
   mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_abatement = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
-  mutate(water_use = use - abatement) %>% 
+  mutate(water_use = use - abatement) %>%
+  mutate(total_cost = (water_use*tax) + total_cost_abatement)
+
+tax_df <- tax_df_full %>% 
   select(district, abatement, water_use, total_cost, stringency)
 
 kable(tax_df, digits = 2, col.names = 
@@ -274,12 +277,13 @@ use <- tax_df$water_use
 tax <- (755-reduction_target)/slope_aggregate
 
 tax_df_drought <- template_df %>% 
-  mutate(former_cost = tax_df$total_cost) %>% 
+  mutate(former_cost = tax_df_full$total_cost_abatement) %>% 
   mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_abatement = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
   mutate(water_use = use - (abatement - tax_df$abatement)) %>%
   mutate(abatement = use - water_use) %>% 
+  mutate(total_cost = (water_use*tax) + total_cost_abatement) %>% 
   select(district, abatement, water_use, total_cost)
 
 kable(tax_df_drought, digits = 2, col.names = 
@@ -330,8 +334,8 @@ There are no taxes collected under this policy intervention so **tax revenue is 
 ### Policy preferences by district
 ```{r}
 kern_policy <- round(cap_no_trade_3$total_cost[1] + cap_no_trade$total_cost[1], 0)
-mojave_policy <- round(tax_df$total_cost[2] + tax_df_drought$total_cost[2], 0)
-antelope_policy <- round(tax_df$total_cost[3] + tax_df_drought$total_cost[3], 0)
+mojave_policy <- round(cap_and_trade$total_cost[2] + cap_and_trade_drought$total_cost[2], 0)
+antelope_policy <- round(cap_and_trade$total_cost[3] + cap_and_trade_drought$total_cost[3], 0)
 ventura_policy <- round(cap_no_trade_3$total_cost[4] + cap_no_trade$total_cost[4], 0)
 ```
 
@@ -339,9 +343,9 @@ The policies that minimize total cost to each district are as follows:
 
 -   **Kern** prefers **cap without trade** ($`r paste(kern_policy)`)
 
--   **Mojave** prefers a **single tax** ($`r paste(mojave_policy)`)
+-   **Mojave** prefers a **cap and trade** ($`r paste(mojave_policy)`)
  
--   **Antelope** prefers a **single tax** ($`r paste(antelope_policy)`)
+-   **Antelope** prefers a **cap and trade** ($`r paste(antelope_policy)`)
 
 -   **Ventura** prefers **cap without trade** ($`r paste(ventura_policy)`)
 
