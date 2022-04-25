@@ -298,8 +298,8 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = district)) +
 </div>
 <div id="policy-interventions" class="section level2">
 <h2>3. Policy interventions</h2>
-<div id="water-use-goal-500-af" class="section level4">
-<h4>Water use goal = 500 AF</h4>
+<div id="water-use-goal-500-af-from-755-af" class="section level4">
+<h4>Water use goal = 500 AF (from 755 AF)</h4>
 <hr />
 </div>
 <div id="a.-cap-without-trade" class="section level3">
@@ -315,7 +315,7 @@ mca_slope &lt;- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope
 template_df &lt;- data.frame(district, use, mca_slope) %&gt;% 
   filter(district != &quot;Aggregate&quot;)
 
-cap_no_trade &lt;- template_df %&gt;% 
+cap_no_trade_3 &lt;- template_df %&gt;% 
   filter(district != &quot;Aggregate&quot;) %&gt;% 
   mutate(water_use_new = (use*(reduction_target/use_aggregate))) %&gt;% # calculating water use after the mandated reduction
   mutate(abatement = use - water_use_new) %&gt;% # calculating the total abatement required by each district
@@ -323,7 +323,7 @@ cap_no_trade &lt;- template_df %&gt;%
   mutate(stringency = stringency_a) %&gt;% # calculating stringency by dividing abatement by initial use 
   select(district, abatement, water_use_new, total_cost, stringency) 
 
-kable(cap_no_trade, digits = 2, col.names = 
+kable(cap_no_trade_3, digits = 2, col.names = 
         c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;, &quot;Stringency&quot;)) %&gt;% 
   kable_styling(bootstrap_options = &quot;striped&quot;, full_width = FALSE, position = &quot;left&quot;)</code></pre>
 <table class="table table-striped" style="width: auto !important; ">
@@ -417,7 +417,7 @@ Ventura
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>total_cost_a &lt;- round(sum(cap_no_trade$total_cost[1:4]), 0)</code></pre>
+<pre class="r"><code>total_cost_a &lt;- round(sum(cap_no_trade_3$total_cost[1:4]), 0)</code></pre>
 <p><strong>Total cost of this policy:</strong> $21156</p>
 <p>There are no taxes collected under this policy intervention so <strong>tax revenue is zero</strong>.</p>
 <hr />
@@ -650,33 +650,35 @@ Ventura
 </div>
 <div id="drought" class="section level2">
 <h2>4. Drought</h2>
-<div id="water-use-goal-300-af" class="section level4">
-<h4>Water use goal = 300 AF</h4>
+<div id="water-use-goal-300-af-from-500-af" class="section level4">
+<h4>Water use goal = 300 AF (from 500 AF)</h4>
 <hr />
 </div>
 <div id="a.-cap-without-trade-1" class="section level3">
 <h3>A. Cap without trade</h3>
 <pre class="r"><code>reduction_target &lt;- 300 # change this number to run for drought
 
+use_aggregate &lt;- 500
+
 stringency_a &lt;- 1-(reduction_target/use_aggregate) # calculating the fractional reduction for all districts
 
-use &lt;- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
-district &lt;- c(&quot;Kern&quot;, &quot;Mojave&quot;, &quot;Antelope&quot;, &quot;Ventura&quot;, &quot;Aggregate&quot;)
-mca_slope &lt;- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_aggregate)
+use_original &lt;- c(use_kern, use_mojave, use_antelope, use_ventura)
+use &lt;- cap_no_trade_3$water_use_new
+district &lt;- c(&quot;Kern&quot;, &quot;Mojave&quot;, &quot;Antelope&quot;, &quot;Ventura&quot;)
+mca_slope &lt;- c(slope_kern, slope_mojave, slope_antelope, slope_ventura)
 
-template_df &lt;- data.frame(district, use, mca_slope) %&gt;% 
+template_df &lt;- data.frame(district, use, mca_slope, use_original) %&gt;% 
   filter(district != &quot;Aggregate&quot;)
 
-cap_no_trade &lt;- template_df %&gt;% 
-  filter(district != &quot;Aggregate&quot;) %&gt;% 
+cap_no_trade &lt;- template_df %&gt;%
   mutate(water_use_new = (use*(reduction_target/use_aggregate))) %&gt;% # calculating water use after the mandated reduction
   mutate(abatement = use - water_use_new) %&gt;% # calculating the total abatement required by each district
-  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %&gt;% # area under the MCA curve to calculate total cost to each district for that level of abatement
+  mutate(total_cost = (((cap_no_trade_3$abatement + abatement)*(cap_no_trade_3$abatement + abatement)*mca_slope)/2) - cap_no_trade_3$total_cost)  %&gt;% # area under the MCA curve to calculate total cost to each district for that level of abatement
   mutate(stringency = stringency_a) %&gt;% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, water_use_new, total_cost, stringency) 
+  select(district, abatement, water_use_new, total_cost) 
 
 kable(cap_no_trade, digits = 2, col.names = 
-        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;, &quot;Stringency&quot;)) %&gt;% 
+        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;)) %&gt;% 
   kable_styling(bootstrap_options = &quot;striped&quot;, full_width = FALSE, position = &quot;left&quot;)</code></pre>
 <table class="table table-striped" style="width: auto !important; ">
 <thead>
@@ -693,9 +695,6 @@ Water Use (AF)
 <th style="text-align:right;">
 Cost to District (USD)
 </th>
-<th style="text-align:right;">
-Stringency
-</th>
 </tr>
 </thead>
 <tbody>
@@ -704,16 +703,13 @@ Stringency
 Kern
 </td>
 <td style="text-align:right;">
-90.40
+39.74
 </td>
 <td style="text-align:right;">
 59.60
 </td>
 <td style="text-align:right;">
-9341.76
-</td>
-<td style="text-align:right;">
-0.6
+6407.58
 </td>
 </tr>
 <tr>
@@ -721,16 +717,13 @@ Kern
 Mojave
 </td>
 <td style="text-align:right;">
-84.37
+37.09
 </td>
 <td style="text-align:right;">
 55.63
 </td>
 <td style="text-align:right;">
-13539.39
-</td>
-<td style="text-align:right;">
-0.6
+9286.77
 </td>
 </tr>
 <tr>
@@ -738,16 +731,13 @@ Mojave
 Antelope
 </td>
 <td style="text-align:right;">
-132.58
+58.28
 </td>
 <td style="text-align:right;">
 87.42
 </td>
 <td style="text-align:right;">
-25116.08
-</td>
-<td style="text-align:right;">
-0.6
+17227.31
 </td>
 </tr>
 <tr>
@@ -755,39 +745,39 @@ Antelope
 Ventura
 </td>
 <td style="text-align:right;">
-147.65
+64.90
 </td>
 <td style="text-align:right;">
 97.35
 </td>
 <td style="text-align:right;">
-19359.08
-</td>
-<td style="text-align:right;">
-0.6
+13278.54
 </td>
 </tr>
 </tbody>
 </table>
 <pre class="r"><code>total_cost_a &lt;- round(sum(cap_no_trade$total_cost[1:4]), 0)</code></pre>
-<p><strong>Total cost of this policy:</strong> $67356</p>
+<p><strong>Total cost of this policy:</strong> $46200</p>
 <p>There are no taxes collected under this policy intervention so <strong>tax revenue is zero</strong>.</p>
 <hr />
 </div>
 <div id="b.-tax-on-water-use-1" class="section level3">
 <h3>B. Tax on water use</h3>
-<pre class="r"><code># calculate the necessary tax by solving for 
+<pre class="r"><code>use &lt;- tax_df$water_use
+# calculate the necessary tax by solving for 
 tax &lt;- (755-reduction_target)/slope_aggregate
 
-tax_df &lt;- template_df %&gt;% 
+tax_df_drought &lt;- template_df %&gt;% 
+  mutate(former_cost = tax_df$total_cost) %&gt;% 
   mutate(abatement = tax/mca_slope) %&gt;% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (abatement*abatement*mca_slope)/2) %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %&gt;% # calculating stringency by dividing abatement by initial use 
-  mutate(water_use = use - abatement) %&gt;% 
-  select(district, abatement, water_use, total_cost, stringency)
+  mutate(water_use = use - (abatement - tax_df$abatement)) %&gt;%
+  mutate(abatement = use - water_use) %&gt;% 
+  select(district, abatement, water_use, total_cost)
 
-kable(tax_df, digits = 2, col.names = 
-        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;, &quot;Stringency&quot;)) %&gt;%
+kable(tax_df_drought, digits = 2, col.names = 
+        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;)) %&gt;%
   kable_styling(bootstrap_options = &quot;striped&quot;, full_width = FALSE, position = &quot;left&quot;)</code></pre>
 <table class="table table-striped" style="width: auto !important; ">
 <thead>
@@ -804,9 +794,6 @@ Water Use (AF)
 <th style="text-align:right;">
 Cost to District (USD)
 </th>
-<th style="text-align:right;">
-Stringency
-</th>
 </tr>
 </thead>
 <tbody>
@@ -815,16 +802,13 @@ Stringency
 Kern
 </td>
 <td style="text-align:right;">
-123.36
+54.22
 </td>
 <td style="text-align:right;">
-26.64
+45.11
 </td>
 <td style="text-align:right;">
-17395.91
-</td>
-<td style="text-align:right;">
-0.82
+11931.98
 </td>
 </tr>
 <tr>
@@ -832,16 +816,13 @@ Kern
 Mojave
 </td>
 <td style="text-align:right;">
-74.14
+32.59
 </td>
 <td style="text-align:right;">
-65.86
+60.13
 </td>
 <td style="text-align:right;">
-10455.63
-</td>
-<td style="text-align:right;">
-0.53
+7171.60
 </td>
 </tr>
 <tr>
@@ -849,16 +830,13 @@ Mojave
 Antelope
 </td>
 <td style="text-align:right;">
-98.70
+43.38
 </td>
 <td style="text-align:right;">
-121.30
+102.31
 </td>
 <td style="text-align:right;">
-13918.31
-</td>
-<td style="text-align:right;">
-0.45
+9546.68
 </td>
 </tr>
 <tr>
@@ -866,42 +844,39 @@ Antelope
 Ventura
 </td>
 <td style="text-align:right;">
-158.80
+69.80
 </td>
 <td style="text-align:right;">
-86.20
+92.45
 </td>
 <td style="text-align:right;">
-22394.46
-</td>
-<td style="text-align:right;">
-0.65
+15360.53
 </td>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>total_cost_b &lt;- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
+<pre class="r"><code>total_cost_b &lt;- round(sum(tax_df_drought$total_cost[1:4]), 0) # calculating the total cost to all districts
 tax_rev_b &lt;- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax</code></pre>
-<p><strong>Total cost of this policy:</strong> $64164</p>
+<p><strong>Total cost of this policy:</strong> $44011</p>
 <p><strong>Tax Revenue:</strong> $84612</p>
 <hr />
 </div>
 <div id="c.-cap-and-trade-1" class="section level3">
 <h3>C. Cap and trade</h3>
-<pre class="r"><code>cap_and_trade &lt;- template_df %&gt;% 
+<pre class="r"><code>cap_and_trade_drought &lt;- template_df %&gt;% 
   mutate(water_use_no_trade = (use*(reduction_target/use_aggregate))) %&gt;% # pulling code from (A) to calculate the water use before trading
   mutate(abatement_before_trade = use - water_use_no_trade) %&gt;% # calculating the abatement before trading
-  mutate(abatement_after_trade = tax/mca_slope) %&gt;% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(abatement_after_trade = (tax/mca_slope) - cap_and_trade$abatement_after_trade) %&gt;% # calculating abatement by each district by plugging in the trading price and solving for quantity abated for each district
   mutate(buy_sell = abatement_before_trade - abatement_after_trade) %&gt;% 
-  mutate(total_cost_before_trade = (abatement_before_trade*abatement_before_trade*mca_slope)/2) %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
-  mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %&gt;% # calculating total cost of abatement after trading is allowed
-  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %&gt;% # addding the revenue generated from buying and selling water rights
+  mutate(total_cost_before_trade = ((use + abatement_before_trade)*(use + abatement_before_trade)*(mca_slope))/2 - cap_no_trade_3$total_cost) %&gt;% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_after_trade = (cap_and_trade$abatement_after_trade + abatement_after_trade)*(cap_and_trade$abatement_after_trade + abatement_after_trade*mca_slope)/2) %&gt;% # calculating total cost of abatement after trading is allowed
+  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %&gt;% # adding the revenue generated from buying and selling water rights
   mutate(stringency = abatement_after_trade/use) %&gt;% # calculating stringency by dividing abatement by initial use 
   mutate(use_after_trade = use - abatement_after_trade) %&gt;% 
-  select(district, abatement_after_trade, use_after_trade, total_cost, stringency)
+  select(district, abatement_after_trade, use_after_trade, total_cost)
 
-kable(cap_and_trade, digits = 2, col.names = 
-        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;, &quot;Stringency&quot;)) %&gt;% 
+kable(cap_and_trade_drought, digits = 2, col.names = 
+        c(&quot;District&quot;, &quot;Abatement (AF)&quot;, &quot;Water Use (AF)&quot;, &quot;Cost to District (USD)&quot;)) %&gt;% 
   kable_styling(bootstrap_options = &quot;striped&quot;, full_width = FALSE, position = &quot;left&quot;)</code></pre>
 <table class="table table-striped" style="width: auto !important; ">
 <thead>
@@ -918,9 +893,6 @@ Water Use (AF)
 <th style="text-align:right;">
 Cost to District (USD)
 </th>
-<th style="text-align:right;">
-Stringency
-</th>
 </tr>
 </thead>
 <tbody>
@@ -929,16 +901,13 @@ Stringency
 Kern
 </td>
 <td style="text-align:right;">
-123.36
+54.22
 </td>
 <td style="text-align:right;">
-26.64
+45.11
 </td>
 <td style="text-align:right;">
-8099.84
-</td>
-<td style="text-align:right;">
-0.82
+7824.48
 </td>
 </tr>
 <tr>
@@ -946,16 +915,13 @@ Kern
 Mojave
 </td>
 <td style="text-align:right;">
-74.14
+32.59
 </td>
 <td style="text-align:right;">
-65.86
+60.13
 </td>
 <td style="text-align:right;">
-13340.40
-</td>
-<td style="text-align:right;">
-0.53
+7404.32
 </td>
 </tr>
 <tr>
@@ -963,16 +929,13 @@ Mojave
 Antelope
 </td>
 <td style="text-align:right;">
-98.70
+43.38
 </td>
 <td style="text-align:right;">
-121.30
+102.31
 </td>
 <td style="text-align:right;">
-23475.46
-</td>
-<td style="text-align:right;">
-0.45
+13048.54
 </td>
 </tr>
 <tr>
@@ -980,24 +943,41 @@ Antelope
 Ventura
 </td>
 <td style="text-align:right;">
-158.80
+69.80
 </td>
 <td style="text-align:right;">
-86.20
+92.45
 </td>
 <td style="text-align:right;">
-19248.61
-</td>
-<td style="text-align:right;">
-0.65
+15527.61
 </td>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>total_cost_c &lt;- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts</code></pre>
-<p><strong>Total cost of this policy:</strong> $64164</p>
+<pre class="r"><code>total_cost_c &lt;- round(sum(cap_and_trade_drought$total_cost[1:4]), 0) # calculating the total cost to all districts</code></pre>
+<p><strong>Total cost of this policy:</strong> $43805</p>
 <p>There are no taxes collected under this policy intervention so <strong>tax revenue is zero</strong>.</p>
 <hr />
+</div>
+<div id="policy-preferences-by-district" class="section level3">
+<h3>Policy preferences by district</h3>
+<pre class="r"><code>kern_policy &lt;- round(cap_no_trade_3$total_cost[1] + cap_no_trade$total_cost[1], 0)
+mojave_policy &lt;- round(tax_df$total_cost[2] + tax_df_drought$total_cost[2], 0)
+antelope_policy &lt;- round(tax_df$total_cost[3] + tax_df_drought$total_cost[3], 0)
+ventura_policy &lt;- round(cap_no_trade_3$total_cost[4] + cap_no_trade$total_cost[4], 0)</code></pre>
+<p>The policies that minimize total cost to each district are as follows:</p>
+<ul>
+<li><p><strong>Kern</strong> prefers <strong>cap without trade</strong> ($9342)</p></li>
+<li><p><strong>Mojave</strong> prefers a <strong>single tax</strong> ($10456)</p></li>
+<li><p><strong>Antelope</strong> prefers a <strong>single tax</strong> ($13918)</p></li>
+<li><p><strong>Ventura</strong> prefers <strong>cap without trade</strong> ($19359)</p></li>
+</ul>
+<hr />
+<div id="allocation-considerations" class="section level4">
+<h4>Allocation Considerations</h4>
+<p>Since rights are rarely allocated in a perfectly efficient manner, some districts would prefer cap and trade above a tax on water use or cap without trade, which are more prescriptive solutions that don’t allow for adjustments to efficiency. Reducing barriers to transaction and allowing for trading will help market shifts towards each consumer satisfying the equal marginal principle, where over-allocated consumers may realize benefits from selling to under-allocated consumers.</p>
+<hr />
+</div>
 </div>
 </div>
 </div>

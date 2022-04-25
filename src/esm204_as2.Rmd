@@ -17,12 +17,14 @@ library(broom)
 library(equatiomatic)
 library(kableExtra)
 ```
+
 # California Water Districts {.tabset .tabset-pills}
+
 ![](irrigation.jpeg)
 
 ## 1. Marginal Abatement
 
-***
+------------------------------------------------------------------------
 
 ```{r}
 water <- read_csv(here("data", "Water_Districts.csv")) %>% 
@@ -52,6 +54,7 @@ ggplot(data = water_longer,
 ```
 
 **Figure 1** shows marginal cost of abatement of water use for each district, thick, straight lines represent a model fit to the data using simple linear regression.
+
 ```{r}
 lm_kern <- lm(mc_kern ~ 0 + reduction, data = water)
 lm_ventura <- lm(mc_ventura ~ 0 + reduction, data = water)
@@ -61,7 +64,9 @@ lm_aggregate <- lm(mc_aggregate ~ 0 + reduction, data = water)
 ```
 
 ### Linear models
-Estimating the marginal abatement cost for each district and the aggregate of all districts. 
+
+Estimating the marginal abatement cost for each district and the aggregate of all districts.
+
 ```{r}
 extract_eq(lm_kern, use_coefs = TRUE)
 extract_eq(lm_ventura, use_coefs = TRUE)
@@ -79,7 +84,7 @@ slope_aggregate <- 1/slope_kern + 1/slope_ventura + 1/slope_antelope + 1/slope_m
 
 ## 2. Demand Curves
 
-***
+------------------------------------------------------------------------
 
 ```{r}
 demand_vector <- c(0:250)
@@ -113,19 +118,19 @@ ggplot(data = demand_df, aes(x = demand_vector, y = mb, color = district)) +
   theme(legend.position = c(0.8, 0.7)) 
 ```
 
-**Figure 2** shows marginal willingness to pay for water for each district. 
+**Figure 2** shows marginal willingness to pay for water for each district.
 
-**The Antelope district** is willing to pay the most for the first acre foot of water, at a price of **$628.68**. 
+**The Antelope district** is willing to pay the most for the first acre foot of water, at a price of **\$628.68**.
 
-***
+------------------------------------------------------------------------
 
 ## 3. Policy interventions
 
-#### Water use goal = 500 AF
+#### Water use goal = 500 AF (from 755 AF)
 
-***
+------------------------------------------------------------------------
 
-### A. Cap without trade 
+### A. Cap without trade
 
 ```{r}
 reduction_target <- 500
@@ -139,7 +144,7 @@ mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_ag
 template_df <- data.frame(district, use, mca_slope) %>% 
   filter(district != "Aggregate")
 
-cap_no_trade <- template_df %>% 
+cap_no_trade_3 <- template_df %>% 
   filter(district != "Aggregate") %>% 
   mutate(water_use_new = (use*(reduction_target/use_aggregate))) %>% # calculating water use after the mandated reduction
   mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
@@ -147,18 +152,18 @@ cap_no_trade <- template_df %>%
   mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
   select(district, abatement, water_use_new, total_cost, stringency) 
 
-kable(cap_no_trade, digits = 2, col.names = 
+kable(cap_no_trade_3, digits = 2, col.names = 
         c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
-total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
+total_cost_a <- round(sum(cap_no_trade_3$total_cost[1:4]), 0)
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_a)`
+**Total cost of this policy:** \$`r paste(total_cost_a)`
 
-There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+There are no taxes collected under this policy intervention so **tax revenue is zero**.
 
-***
+------------------------------------------------------------------------
 
 ### B. Tax on water use
 
@@ -183,11 +188,11 @@ tax_rev_b <- round(reduction_target*tax, 0) # calculating tax revenue by multipl
 
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_b)`
+**Total cost of this policy:** \$`r paste(total_cost_b)`
 
-**Tax Revenue:** $`r paste(tax_rev_b)`
+**Tax Revenue:** \$`r paste(tax_rev_b)`
 
-*** 
+------------------------------------------------------------------------
 
 ### C. Cap and trade
 
@@ -212,110 +217,138 @@ total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the t
 
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_c)`
+**Total cost of this policy:** \$`r paste(total_cost_c)`
 
-There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+There are no taxes collected under this policy intervention so **tax revenue is zero**.
 
-***
+------------------------------------------------------------------------
 
 ## 4. Drought
 
-#### Water use goal = 300 AF
+#### Water use goal = 300 AF (from 500 AF)
 
-***
+------------------------------------------------------------------------
 
-### A. Cap without trade 
+### A. Cap without trade
 
 ```{r}
 reduction_target <- 300 # change this number to run for drought
 
+use_aggregate <- 500
+
 stringency_a <- 1-(reduction_target/use_aggregate) # calculating the fractional reduction for all districts
 
-use <- c(use_kern, use_mojave, use_antelope, use_ventura, use_aggregate)
-district <- c("Kern", "Mojave", "Antelope", "Ventura", "Aggregate")
-mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura, slope_aggregate)
+use_original <- c(use_kern, use_mojave, use_antelope, use_ventura)
+use <- cap_no_trade_3$water_use_new
+district <- c("Kern", "Mojave", "Antelope", "Ventura")
+mca_slope <- c(slope_kern, slope_mojave, slope_antelope, slope_ventura)
 
-template_df <- data.frame(district, use, mca_slope) %>% 
+template_df <- data.frame(district, use, mca_slope, use_original) %>% 
   filter(district != "Aggregate")
 
-cap_no_trade <- template_df %>% 
-  filter(district != "Aggregate") %>% 
+cap_no_trade <- template_df %>%
   mutate(water_use_new = (use*(reduction_target/use_aggregate))) %>% # calculating water use after the mandated reduction
   mutate(abatement = use - water_use_new) %>% # calculating the total abatement required by each district
-  mutate(total_cost = (abatement*(abatement*mca_slope))/2) %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
+  mutate(total_cost = (((cap_no_trade_3$abatement + abatement)*(cap_no_trade_3$abatement + abatement)*mca_slope)/2) - cap_no_trade_3$total_cost)  %>% # area under the MCA curve to calculate total cost to each district for that level of abatement
   mutate(stringency = stringency_a) %>% # calculating stringency by dividing abatement by initial use 
-  select(district, abatement, water_use_new, total_cost, stringency) 
+  select(district, abatement, water_use_new, total_cost) 
 
 kable(cap_no_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
 total_cost_a <- round(sum(cap_no_trade$total_cost[1:4]), 0)
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_a)`
+**Total cost of this policy:** \$`r paste(total_cost_a)`
 
-There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+There are no taxes collected under this policy intervention so **tax revenue is zero**.
 
-***
+------------------------------------------------------------------------
 
 ### B. Tax on water use
 
 ```{r}
-
+use <- tax_df$water_use
 # calculate the necessary tax by solving for 
 tax <- (755-reduction_target)/slope_aggregate
 
-tax_df <- template_df %>% 
+tax_df_drought <- template_df %>% 
+  mutate(former_cost = tax_df$total_cost) %>% 
   mutate(abatement = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
-  mutate(total_cost = (abatement*abatement*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost = (((abatement)*(abatement)*mca_slope)/2) - former_cost)  %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
   mutate(stringency = abatement/use) %>% # calculating stringency by dividing abatement by initial use 
-  mutate(water_use = use - abatement) %>% 
-  select(district, abatement, water_use, total_cost, stringency)
+  mutate(water_use = use - (abatement - tax_df$abatement)) %>%
+  mutate(abatement = use - water_use) %>% 
+  select(district, abatement, water_use, total_cost)
 
-kable(tax_df, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>%
+kable(tax_df_drought, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)")) %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
   
-total_cost_b <- round(sum(tax_df$total_cost[1:4]), 0) # calculating the total cost to all districts
+total_cost_b <- round(sum(tax_df_drought$total_cost[1:4]), 0) # calculating the total cost to all districts
 tax_rev_b <- round(reduction_target*tax, 0) # calculating tax revenue by multiplying the total water use by the tax
 
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_b)`
+**Total cost of this policy:** \$`r paste(total_cost_b)`
 
-**Tax Revenue:** $`r paste(tax_rev_b)`
+**Tax Revenue:** \$`r paste(tax_rev_b)`
 
-*** 
+------------------------------------------------------------------------
 
 ### C. Cap and trade
 
 ```{r}
-cap_and_trade <- template_df %>% 
+cap_and_trade_drought <- template_df %>% 
   mutate(water_use_no_trade = (use*(reduction_target/use_aggregate))) %>% # pulling code from (A) to calculate the water use before trading
   mutate(abatement_before_trade = use - water_use_no_trade) %>% # calculating the abatement before trading
-  mutate(abatement_after_trade = tax/mca_slope) %>% # calculating abatement by each district by plugging in the tax and solving for quantity abated for each district
+  mutate(abatement_after_trade = (tax/mca_slope) - cap_and_trade$abatement_after_trade) %>% # calculating abatement by each district by plugging in the trading price and solving for quantity abated for each district
   mutate(buy_sell = abatement_before_trade - abatement_after_trade) %>% 
-  mutate(total_cost_before_trade = (abatement_before_trade*abatement_before_trade*mca_slope)/2) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
-  mutate(total_cost_after_trade = (abatement_after_trade*abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
-  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # addding the revenue generated from buying and selling water rights
+  mutate(total_cost_before_trade = ((use + abatement_before_trade)*(use + abatement_before_trade)*(mca_slope))/2 - cap_no_trade_3$total_cost) %>% # calculating total cost by finding the area under the curve for each district at that level of abatement
+  mutate(total_cost_after_trade = (cap_and_trade$abatement_after_trade + abatement_after_trade)*(cap_and_trade$abatement_after_trade + abatement_after_trade*mca_slope)/2) %>% # calculating total cost of abatement after trading is allowed
+  mutate(total_cost = total_cost_after_trade + buy_sell*tax) %>% # adding the revenue generated from buying and selling water rights
   mutate(stringency = abatement_after_trade/use) %>% # calculating stringency by dividing abatement by initial use 
   mutate(use_after_trade = use - abatement_after_trade) %>% 
-  select(district, abatement_after_trade, use_after_trade, total_cost, stringency)
+  select(district, abatement_after_trade, use_after_trade, total_cost)
 
-kable(cap_and_trade, digits = 2, col.names = 
-        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)", "Stringency")) %>% 
+kable(cap_and_trade_drought, digits = 2, col.names = 
+        c("District", "Abatement (AF)", "Water Use (AF)", "Cost to District (USD)")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
 
-total_cost_c <- round(sum(cap_and_trade$total_cost[1:4]), 0) # calculating the total cost to all districts
+total_cost_c <- round(sum(cap_and_trade_drought$total_cost[1:4]), 0) # calculating the total cost to all districts
 
 ```
 
-**Total cost of this policy:** $`r paste(total_cost_c)`
 
-There are no taxes collected under this policy intervention so **tax revenue is zero**. 
+**Total cost of this policy:** \$`r paste(total_cost_c)`
 
-***
+There are no taxes collected under this policy intervention so **tax revenue is zero**.
 
+------------------------------------------------------------------------
 
+### Policy preferences by district
+```{r}
+kern_policy <- round(cap_no_trade_3$total_cost[1] + cap_no_trade$total_cost[1], 0)
+mojave_policy <- round(tax_df$total_cost[2] + tax_df_drought$total_cost[2], 0)
+antelope_policy <- round(tax_df$total_cost[3] + tax_df_drought$total_cost[3], 0)
+ventura_policy <- round(cap_no_trade_3$total_cost[4] + cap_no_trade$total_cost[4], 0)
+```
+
+The policies that minimize total cost to each district are as follows:
+
+-   **Kern** prefers **cap without trade** ($`r paste(kern_policy)`)
+
+-   **Mojave** prefers a **single tax** ($`r paste(mojave_policy)`)
+ 
+-   **Antelope** prefers a **single tax** ($`r paste(antelope_policy)`)
+
+-   **Ventura** prefers **cap without trade** ($`r paste(ventura_policy)`)
+
+------------------------------------------------------------------------
+#### Allocation Considerations
+
+Since rights are rarely allocated in a perfectly efficient manner, some districts would prefer cap and trade above a tax on water use or cap without trade, which are more prescriptive solutions that don't allow for adjustments to efficiency. Reducing barriers to transaction and allowing for trading will help market shifts towards each consumer satisfying the equal marginal principle, where over-allocated consumers may realize benefits from selling to under-allocated consumers. 
+
+*** 
 
